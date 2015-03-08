@@ -122,6 +122,16 @@ public class InvokeReactTest {
 		assertThat(renderOutput, equalTo("<div>JSX component</div>"));
 	}
 
+	@Test
+	public void modules_can_export_directly_to_implicit_global() throws Exception {
+		nashornEngine.eval("var global = this");
+
+		loadScript("react-with-addons.js");
+		assertThat(nashornEngine.eval("React.version"), equalTo("0.12.1"));
+
+		assertThat(nashornEngine.getBindings(ScriptContext.ENGINE_SCOPE).get("React"), not(nullValue()));
+	}
+
 	private static String withReactSymbol(String js) {
 		return String.format("(function(React) { return %s })(global.React)", js);
 	}
