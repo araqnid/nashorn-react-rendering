@@ -5,7 +5,9 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.regex.Pattern;
 
+import javax.script.Bindings;
 import javax.script.Invocable;
+import javax.script.ScriptContext;
 import javax.script.ScriptEngine;
 import javax.script.ScriptEngineManager;
 import javax.script.ScriptException;
@@ -96,6 +98,25 @@ public class InvokeReactTest {
 
 		Object jsxComponent = nashornInvoker.invokeMethod(jsJSXTransformer, "exec",
 				withReactSymbol("React.createClass({ render: function() { return <div>JSX component</div>; } })"));
+		Object renderElement = nashornInvoker.invokeMethod(jsReact, "createElement", jsxComponent);
+		Object renderOutput = nashornInvoker.invokeMethod(jsReact, "renderToStaticMarkup", renderElement);
+		assertThat(renderOutput, equalTo("<div>JSX component</div>"));
+	}
+
+	@Test
+	public void react_symbol_can_be_added_to_implicit_global() throws Exception {
+		nashornEngine.eval("global = {};");
+
+		loadScript("react-with-addons.js");
+		Object jsReact = nashornEngine.eval("global.React");
+		Bindings bindings = nashornEngine.getBindings(ScriptContext.ENGINE_SCOPE);
+		bindings.put("React", jsReact);
+
+		loadScript("jsx-transformer.js");
+		Object jsJSXTransformer = nashornEngine.eval("global.JSXTransformer");
+
+		Object jsxComponent = nashornInvoker.invokeMethod(jsJSXTransformer, "exec",
+				"React.createClass({ render: function() { return <div>JSX component</div>; } })");
 		Object renderElement = nashornInvoker.invokeMethod(jsReact, "createElement", jsxComponent);
 		Object renderOutput = nashornInvoker.invokeMethod(jsReact, "renderToStaticMarkup", renderElement);
 		assertThat(renderOutput, equalTo("<div>JSX component</div>"));
