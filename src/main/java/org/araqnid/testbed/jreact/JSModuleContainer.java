@@ -158,9 +158,19 @@ public class JSModuleContainer {
 		Module module = new Module();
 		modules.put(moduleName, module);
 		String resourceName = root + "/" + residualName + ".jsx";
-		String jsxSource = Resources.asCharSource(Resources.getResource(resourceName), StandardCharsets.UTF_8).read();
+		URL resource = Resources.getResource(resourceName);
+		String jsxSource = Resources.asCharSource(resource, StandardCharsets.UTF_8).read();
 		JSXTransformer adaptor = modules.get("JSXTransformer").adaptors.getInstance(JSXTransformer.class);
-		adaptor.exec( "(function(define) { " + jsxSource + " })(function() { __loader.define(arguments) })");
+		JSObject jsTransformOutput = adaptor.transform(jsxSource);
+		String jsSource = (String) jsTransformOutput.getMember("code");
+		ScriptContext scriptContext = new SimpleScriptContext();
+		Bindings engineBindings = nashornEngine.createBindings();
+		scriptContext.setBindings(engineBindings, ScriptContext.ENGINE_SCOPE);
+		engineBindings.put("__loader", new LoaderProxy());
+		engineBindings.put("console", new Console());
+		engineBindings.put("define", nashornEngine.eval("(function() { __loader.define(arguments) })", scriptContext));
+		scriptContext.setAttribute(ScriptEngine.FILENAME, resource.toString(), ScriptContext.ENGINE_SCOPE);
+		nashornEngine.eval(jsSource, scriptContext);
 		if (defineCalls.isEmpty()) throw new IllegalStateException("No call to define() from " + resourceName);
 		JSObject defineCall = defineCalls.poll();
 		if (!defineCalls.isEmpty()) throw new IllegalStateException("Multiple calls to define() from " + resourceName);
@@ -253,6 +263,7 @@ public class JSModuleContainer {
 
 	public interface JSXTransformer {
 		void exec(String str);
+		JSObject transform(String source);
 	}
 
 	public interface React {
