@@ -8,6 +8,7 @@ deploy:
     secure: bxVgicZlHpHphdBAlHQQlJ38lm5kAKIe+If/8BBUzDwV+xMuRJmGsfcmcqGRPDr3t5m8aPE4CgOmvUX5ZGKlF75MwrD5nCgMkve2B2uDqh2D2kQqFMoEVW42fQTzoCTmYMe1AlMZ5bOljCKHGxW+e5o40q1OXr2OJLO1KG/wtY4=
   bucket: araqnid-java-artifacts
   local-dir: build/libs
+  skip_cleanup: true
   upload-dir: nashorn-react-rendering
   acl: public_read
   on:
