@@ -178,14 +178,15 @@ public class JSModuleContainer {
 		modules.put("JSXTransformer", jsxModule);
 		Invocable nashornInvoker = (Invocable) nashornEngine;
 		try {
-			nashornEngine.eval("var global = this");
-			loadScript("react-with-addons.js", nashornEngine.getContext());
-			reactModule.value = verifyNotNull(nashornEngine.getBindings(ScriptContext.ENGINE_SCOPE).get("React"));
+			ScriptContext scriptContext = nashornEngine.getContext();
+			nashornEngine.eval("var global = this", scriptContext);
+			loadScript("react-with-addons.js", scriptContext);
+			reactModule.value = verifyNotNull(scriptContext.getBindings(ScriptContext.ENGINE_SCOPE).get("React"));
 			reactModule.adaptors = ImmutableClassToInstanceMap.builder()
 					.put(React.class, nashornInvoker.getInterface(reactModule.value, React.class))
 					.build();
-			loadScript("jsx-transformer.js", nashornEngine.getContext());
-			jsxModule.value = verifyNotNull(nashornEngine.getBindings(ScriptContext.ENGINE_SCOPE).get("JSXTransformer"));
+			loadScript("jsx-transformer.js", scriptContext);
+			jsxModule.value = verifyNotNull(scriptContext.getBindings(ScriptContext.ENGINE_SCOPE).get("JSXTransformer"));
 			jsxModule.adaptors = ImmutableClassToInstanceMap.builder()
 					.put(JSXTransformer.class, nashornInvoker.getInterface(jsxModule.value, JSXTransformer.class))
 					.build();
