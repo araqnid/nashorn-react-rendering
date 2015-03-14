@@ -8,6 +8,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import javax.script.Bindings;
 import javax.script.ScriptContext;
@@ -24,6 +26,7 @@ import com.google.common.io.CharSource;
 import com.google.common.io.Resources;
 
 public class JSModuleContainer {
+	private static final Pattern JSX_PATTERN = Pattern.compile("jsx!(.+)");
 	private final ScriptEngineManager engineManager = new ScriptEngineManager();
 	private final ScriptEngine nashornEngine = engineManager.getEngineByName("nashorn");
 	private final Map<String, Module> modules = new HashMap<>();
@@ -54,6 +57,20 @@ public class JSModuleContainer {
 	}
 
 	private Module load(String moduleName) throws IOException, ScriptException {
+		Matcher jsxMatcher = JSX_PATTERN.matcher(moduleName);
+		if (jsxMatcher.matches()) {
+			return loadJSX(moduleName, jsxMatcher.group(1));
+		}
+		else if (moduleName.equals("react") || moduleName.equals("JSXTransformer")) {
+			ensureReactLoaded();
+			return modules.get(moduleName);
+		}
+		else {
+			return loadBasic(moduleName);
+		}
+	}
+
+	private Module loadBasic(String moduleName) throws IOException, ScriptException {
 		Verify.verify(defineCalls.isEmpty());
 		Module module = new Module();
 		modules.put(moduleName, module);
@@ -102,6 +119,52 @@ public class JSModuleContainer {
 		}
 		module.value = callback.call(null, dependencyValues.toArray());
 		module.state = Module.State.LOADED;
+	}
+
+	private Module loadJSX(String moduleName, String residualName) throws IOException, ScriptException {
+		ensureReactLoaded();
+		Verify.verify(defineCalls.isEmpty());
+		Module module = new Module();
+		modules.put(moduleName, module);
+		String resourceName = root + "/" + residualName + ".jsx";
+		String jsxSource = Resources.asCharSource(Resources.getResource(resourceName), StandardCharsets.UTF_8).read();
+		ScriptObjectMirror jsxTransformer = (ScriptObjectMirror) modules.get("JSXTransformer").value;
+		jsxTransformer.callMember("exec", "(function(define) { " + jsxSource + " })(function() { __loader.define(arguments) })");
+		if (defineCalls.isEmpty()) throw new IllegalStateException("No call to define() from " + resourceName);
+		ScriptObjectMirror defineCall = defineCalls.poll();
+		if (!defineCalls.isEmpty()) throw new IllegalStateException("Multiple calls to define() from " + resourceName);
+		define(module, moduleName, defineCall);
+		return module;
+	}
+
+	private void ensureReactLoaded() {
+		Module reactModule = modules.get("react");
+		if (reactModule != null) {
+			if (reactModule.state == Module.State.LOADED) return;
+			throw new IllegalStateException("React module is in state " + reactModule.state);
+		}
+		reactModule = new Module();
+		Module jsxModule = new Module();
+		modules.put("react", reactModule);
+		modules.put("JSXTransformer", jsxModule);
+		try {
+			nashornEngine.eval("var global = {};");
+			loadScript("react-with-addons.js");
+			reactModule.value = (ScriptObjectMirror) nashornEngine.eval("global.React");
+			loadScript("jsx-transformer.js");
+			jsxModule.value = (ScriptObjectMirror) nashornEngine.eval("global.JSXTransformer");
+		} catch (ScriptException | IOException | ClassCastException e) {
+			throw new IllegalStateException("Unable to load React/JSX", e);
+		}
+		jsxModule.state = Module.State.LOADED;
+		reactModule.state = Module.State.LOADED;
+	}
+
+	private void loadScript(String src) throws IOException, ScriptException {
+		CharSource charSource = Resources.asCharSource(Resources.getResource("web/" + src), StandardCharsets.UTF_8);
+		try (BufferedReader reader = charSource.openBufferedStream()) {
+			nashornEngine.eval(reader);
+		}
 	}
 
 	private static final class Module {

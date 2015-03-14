@@ -74,7 +74,7 @@ public class CallbackFromJavascriptTest {
 		assertThat(invocations, contains(jsArrayishContaining(jsArray(), jsFunction())));
 	}
 
-	private static Matcher<ScriptObjectMirror> jsArrayishContaining(Matcher<ScriptObjectMirror> elementMatcher) {
+	public static Matcher<ScriptObjectMirror> jsArrayishContaining(Matcher<ScriptObjectMirror> elementMatcher) {
 		return new TypeSafeDiagnosingMatcher<ScriptObjectMirror>() {
 			@Override
 			protected boolean matchesSafely(ScriptObjectMirror item, Description mismatchDescription) {
@@ -98,7 +98,7 @@ public class CallbackFromJavascriptTest {
 		};
 	}
 
-	private static Matcher<ScriptObjectMirror> jsArrayishContaining(Matcher<ScriptObjectMirror> firstElementMatcher,
+	public static Matcher<ScriptObjectMirror> jsArrayishContaining(Matcher<ScriptObjectMirror> firstElementMatcher,
 			Matcher<ScriptObjectMirror> secondElementMatcher) {
 		return new TypeSafeDiagnosingMatcher<ScriptObjectMirror>() {
 			@Override
@@ -134,7 +134,7 @@ public class CallbackFromJavascriptTest {
 		};
 	}
 
-	private static Matcher<ScriptObjectMirror> jsArray() {
+	public static Matcher<ScriptObjectMirror> jsArray() {
 		return new TypeSafeDiagnosingMatcher<ScriptObjectMirror>() {
 			@Override
 			protected boolean matchesSafely(ScriptObjectMirror item, Description mismatchDescription) {
@@ -149,7 +149,7 @@ public class CallbackFromJavascriptTest {
 		};
 	}
 
-	private static Matcher<ScriptObjectMirror> jsFunction() {
+	public static Matcher<ScriptObjectMirror> jsFunction() {
 		return new TypeSafeDiagnosingMatcher<ScriptObjectMirror>() {
 			@Override
 			protected boolean matchesSafely(ScriptObjectMirror item, Description mismatchDescription) {
