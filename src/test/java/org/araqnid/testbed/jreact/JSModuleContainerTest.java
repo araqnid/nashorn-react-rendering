@@ -57,4 +57,13 @@ public class JSModuleContainerTest {
 		assertThat(react.callMember("renderToStaticMarkup", react.callMember("createElement", jsxComponent)),
 				equalTo("<div>Component content</div>"));
 	}
+
+	@Test
+	public void loads_dependent_jsx_module() throws Exception {
+		JSModuleContainer container = new JSModuleContainer("test");
+		ScriptObjectMirror jsxComponent = (ScriptObjectMirror) container.require("jsx!AggregateComponent");
+		ScriptObjectMirror react = (ScriptObjectMirror) container.require("react");
+		assertThat(react.callMember("renderToStaticMarkup", react.callMember("createElement", jsxComponent)),
+				equalTo("<ul><li><div>Component content</div></li><li><div>Component content</div></li></ul>"));
+	}
 }
