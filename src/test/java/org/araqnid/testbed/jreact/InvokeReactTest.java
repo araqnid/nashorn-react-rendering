@@ -1,5 +1,10 @@
 package org.araqnid.testbed.jreact;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.not;
+import static org.hamcrest.Matchers.nullValue;
+
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -12,18 +17,17 @@ import javax.script.ScriptEngine;
 import javax.script.ScriptEngineManager;
 import javax.script.ScriptException;
 
+import jdk.nashorn.api.scripting.ScriptObjectMirror;
+
 import org.hamcrest.Description;
 import org.hamcrest.Matcher;
 import org.hamcrest.TypeSafeDiagnosingMatcher;
 import org.junit.Test;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.io.CharSource;
 import com.google.common.io.Resources;
-
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.not;
-import static org.hamcrest.Matchers.nullValue;
 
 public class InvokeReactTest {
 	private final ScriptEngineManager engineManager = new ScriptEngineManager();
@@ -84,6 +88,28 @@ public class InvokeReactTest {
 		Object renderElement = nashornInvoker.invokeMethod(jsReact, "createElement", component);
 		Object renderOutput = nashornInvoker.invokeMethod(jsReact, "renderToStaticMarkup", renderElement);
 		assertThat(renderOutput, equalTo("<div>Component content</div>"));
+	}
+
+	@Test
+	public void renders_component_with_data_from_props() throws Exception {
+		nashornEngine.eval("global = {};");
+		nashornEngine.getBindings(ScriptContext.ENGINE_SCOPE).put("console", new JSModuleContainer.Console());
+
+		String str = "xyzzyString";
+		Object rawProps = ImmutableMap.of("content", str);
+
+		ScriptObjectMirror json = (ScriptObjectMirror) nashornEngine.getBindings(ScriptContext.ENGINE_SCOPE).get("JSON");
+		Object props = json.callMember("parse", new ObjectMapper().writeValueAsString(rawProps));
+
+		loadScript("react-with-addons.js");
+		Object jsReact = nashornEngine.eval("global.React");
+
+		Object componentBody = nashornEngine
+				.eval("(function(){ return { render: function() { return global.React.createElement(\"div\", {}, \"content: \" + this.props.content) } } })()");
+		Object component = nashornInvoker.invokeMethod(jsReact, "createClass", componentBody);
+		Object renderElement = nashornInvoker.invokeMethod(jsReact, "createElement", component, props);
+		Object renderOutput = nashornInvoker.invokeMethod(jsReact, "renderToStaticMarkup", renderElement);
+		assertThat(renderOutput, equalTo("<div>content: "+ str + "</div>"));
 	}
 
 	@Test
