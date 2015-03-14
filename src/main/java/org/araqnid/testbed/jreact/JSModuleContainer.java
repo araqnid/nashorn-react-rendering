@@ -47,14 +47,6 @@ public class JSModuleContainer {
 
 	public JSModuleContainer(String root) {
 		this.root = root;
-		try {
-			Bindings engineBindings = nashornEngine.getBindings(ScriptContext.ENGINE_SCOPE);
-			engineBindings.put("__loader", new LoaderProxy());
-			engineBindings.put("console", new Console());
-			nashornEngine.eval("this.define = function() { __loader.define(arguments) }");
-		} catch (ScriptException e) {
-			throw new IllegalStateException("Unable to set up Nashorn engine", e);
-		}
 	}
 
 	public Object require(String moduleName) throws IOException, ScriptException {
@@ -110,10 +102,18 @@ public class JSModuleContainer {
 		Verify.verify(defineCalls.isEmpty());
 		Module module = new Module();
 		modules.put(moduleName, module);
+		ScriptContext scriptContext = new SimpleScriptContext();
+		Bindings engineBindings = nashornEngine.createBindings();
+		scriptContext.setBindings(engineBindings, ScriptContext.ENGINE_SCOPE);
 		String resourceName = root + "/" + moduleName + ".js";
-		CharSource charSource = Resources.asCharSource(Resources.getResource(resourceName), StandardCharsets.UTF_8);
+		URL resource = Resources.getResource(resourceName);
+		CharSource charSource = Resources.asCharSource(resource, StandardCharsets.UTF_8);
+		engineBindings.put("__loader", new LoaderProxy());
+		engineBindings.put("console", new Console());
+		engineBindings.put("define", nashornEngine.eval("(function() { __loader.define(arguments) })", scriptContext));
+		scriptContext.setAttribute(ScriptEngine.FILENAME, resource.toString(), ScriptContext.ENGINE_SCOPE);
 		try (BufferedReader reader = charSource.openBufferedStream()) {
-			nashornEngine.eval(reader);
+			nashornEngine.eval(reader, scriptContext);
 		}
 		if (defineCalls.isEmpty()) throw new IllegalStateException("No call to define() from " + resourceName);
 		JSObject defineCall = defineCalls.poll();
