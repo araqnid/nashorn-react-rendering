@@ -8,6 +8,7 @@ import static org.hamcrest.Matchers.nullValue;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.util.Map;
 import java.util.regex.Pattern;
 
 import javax.script.Bindings;
@@ -26,6 +27,7 @@ import org.junit.Test;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.io.CharSource;
 import com.google.common.io.Resources;
 
@@ -113,6 +115,25 @@ public class InvokeReactTest {
 	}
 
 	@Test
+	public void transforms_jsx_source() throws Exception {
+		nashornEngine.eval("global = {};");
+
+		loadScript("jsx-transformer.js");
+		Object jsJSXTransformer = nashornEngine.eval("global.JSXTransformer");
+
+		String source = "var content = <Content>foo</Content>;";
+		Map<String, Object> rawOptions = ImmutableMap.of();
+
+		Json json = nashornInvoker.getInterface(nashornEngine.getBindings(ScriptContext.ENGINE_SCOPE).get("JSON"), Json.class);
+		JSObject options = json.parse(new ObjectMapper().writeValueAsString(rawOptions));
+
+		JSObject transformOutput = (JSObject) nashornInvoker.invokeMethod(jsJSXTransformer, "transform", source, options);
+		assertThat(transformOutput.keySet(), equalTo(ImmutableSet.of("code", "extra")));
+		assertThat(transformOutput.getMember("code"), equalTo("var content = React.createElement(Content, null, \"foo\");"));
+		assertThat(json.stringify((JSObject) transformOutput.getMember("extra")), equalTo("undefined"));
+	}
+
+	@Test
 	public void renders_jsx_component() throws Exception {
 		nashornEngine.eval("global = {};");
 
@@ -192,5 +213,6 @@ public class InvokeReactTest {
 
 	public interface Json {
 		JSObject parse(String str);
+		String stringify(JSObject obj);
 	}
 }
