@@ -64,6 +64,6 @@ public class JSModuleContainerTest {
 		ScriptObjectMirror jsxComponent = (ScriptObjectMirror) container.require("jsx!AggregateComponent");
 		ScriptObjectMirror react = (ScriptObjectMirror) container.require("react");
 		assertThat(react.callMember("renderToStaticMarkup", react.callMember("createElement", jsxComponent)),
-				equalTo("<ul><li><div>Component content</div></li><li><div>Component content</div></li></ul>"));
+				equalTo("<ul><li><div>Component1 content</div></li><li><div>Component2 content</div></li></ul>"));
 	}
 }
