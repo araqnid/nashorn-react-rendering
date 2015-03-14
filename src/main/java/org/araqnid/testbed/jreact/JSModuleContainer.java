@@ -12,13 +12,13 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import javax.script.Bindings;
+import javax.script.Invocable;
 import javax.script.ScriptContext;
 import javax.script.ScriptEngine;
 import javax.script.ScriptEngineManager;
 import javax.script.ScriptException;
 
 import jdk.nashorn.api.scripting.JSObject;
-import jdk.nashorn.api.scripting.ScriptObjectMirror;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -130,8 +130,8 @@ public class JSModuleContainer {
 		modules.put(moduleName, module);
 		String resourceName = root + "/" + residualName + ".jsx";
 		String jsxSource = Resources.asCharSource(Resources.getResource(resourceName), StandardCharsets.UTF_8).read();
-		ScriptObjectMirror jsxTransformer = (ScriptObjectMirror) modules.get("JSXTransformer").value;
-		jsxTransformer.callMember("exec", "(function(define) { " + jsxSource + " })(function() { __loader.define(arguments) })");
+		JSXTransformer adaptor = ((Invocable) nashornEngine).getInterface(modules.get("JSXTransformer").value, JSXTransformer.class);
+		adaptor.exec( "(function(define) { " + jsxSource + " })(function() { __loader.define(arguments) })");
 		if (defineCalls.isEmpty()) throw new IllegalStateException("No call to define() from " + resourceName);
 		JSObject defineCall = defineCalls.poll();
 		if (!defineCalls.isEmpty()) throw new IllegalStateException("Multiple calls to define() from " + resourceName);
@@ -152,9 +152,9 @@ public class JSModuleContainer {
 		try {
 			nashornEngine.eval("var global = {};");
 			loadScript("react-with-addons.js");
-			reactModule.value = (ScriptObjectMirror) nashornEngine.eval("global.React");
+			reactModule.value = (JSObject) nashornEngine.eval("global.React");
 			loadScript("jsx-transformer.js");
-			jsxModule.value = (ScriptObjectMirror) nashornEngine.eval("global.JSXTransformer");
+			jsxModule.value = (JSObject) nashornEngine.eval("global.JSXTransformer");
 		} catch (ScriptException | IOException | ClassCastException e) {
 			throw new IllegalStateException("Unable to load React/JSX", e);
 		}
@@ -203,5 +203,9 @@ public class JSModuleContainer {
 		public void error(String message) {
 			LOG.error(message);
 		}
+	}
+
+	public interface JSXTransformer {
+		void exec(String str);
 	}
 }
