@@ -65,6 +65,29 @@ public class JSModuleContainer {
 		return module.value;
 	}
 
+	public <T> T require(String moduleName, Class<T> targetInterface) throws IOException, ScriptException {
+		Module module = modules.get(moduleName);
+		if (module != null) {
+			if (module.state != Module.State.LOADED)
+				throw new IllegalStateException(moduleName + " in state " + module.state);
+		}
+		else {
+			module = load(moduleName);
+		}
+		if (module.adaptors.containsKey(targetInterface)) return module.adaptors.getInstance(targetInterface);
+		Invocable nashornInvoker = (Invocable) nashornEngine;
+		if (!(module.value instanceof JSObject)) {
+			throw new ClassCastException("Non-object module '" + moduleName + "' is not compatible with " + targetInterface);
+		}
+		T adaptor = nashornInvoker.getInterface(module.value, targetInterface);
+		if (adaptor == null) throw new ClassCastException("Module '" + moduleName + "' is not compatible with " + targetInterface);
+		module.adaptors = ImmutableClassToInstanceMap.builder()
+				.putAll(module.adaptors)
+				.put(targetInterface, adaptor)
+				.build();
+		return adaptor;
+	}
+
 	private Module load(String moduleName) throws IOException, ScriptException {
 		Matcher jsxMatcher = JSX_PATTERN.matcher(moduleName);
 		if (jsxMatcher.matches()) {

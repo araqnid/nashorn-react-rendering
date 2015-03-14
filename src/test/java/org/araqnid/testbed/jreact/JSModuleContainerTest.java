@@ -2,7 +2,10 @@ package org.araqnid.testbed.jreact;
 
 import static org.araqnid.testbed.jreact.CallbackFromJavascriptTest.jsFunction;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.both;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.core.StringContains.containsString;
+import static org.junit.Assert.fail;
 
 import java.io.IOException;
 
@@ -43,10 +46,50 @@ public class JSModuleContainerTest {
 	}
 
 	@Test
+	public void exposes_react_as_adaptor() throws Exception {
+		JSModuleContainer container = new JSModuleContainer("test");
+		container.require("react", JSModuleContainer.React.class);
+	}
+
+	@Test
+	public void traps_attempt_to_expose_module_with_incompatible_adaptor() throws Exception {
+		JSModuleContainer container = new JSModuleContainer("test");
+		String moduleName = "react";
+		Class<?> targetClass = Runnable.class;
+		try {
+			container.require(moduleName, targetClass);
+			fail();
+		} catch (ClassCastException e) {
+			assertThat(e.getMessage(),
+					both(containsString(moduleName)).and(containsString(targetClass.getName())));
+		}
+	}
+
+	@Test
+	public void traps_attempt_to_adapt_module_that_is_not_a_function() throws Exception {
+		JSModuleContainer container = new JSModuleContainer("test");
+		String moduleName = "noDependencies";
+		Class<?> targetClass = Runnable.class;
+		try {
+			container.require(moduleName, targetClass);
+			fail();
+		} catch (ClassCastException e) {
+			assertThat(e.getMessage(),
+					both(containsString(moduleName)).and(containsString(targetClass.getName())));
+		}
+	}
+
+	@Test
 	public void loads_jsx_transformer() throws Exception {
 		JSModuleContainer container = new JSModuleContainer("test");
 		ScriptObjectMirror jsxTransformer = (ScriptObjectMirror) container.require("JSXTransformer");
 		assertThat((ScriptObjectMirror) jsxTransformer.get("exec"), jsFunction());
+	}
+
+	@Test
+	public void exposes_jsx_transformer_as_adaptor() throws Exception {
+		JSModuleContainer container = new JSModuleContainer("test");
+		container.require("JSXTransformer", JSModuleContainer.JSXTransformer.class);
 	}
 
 	@Test
