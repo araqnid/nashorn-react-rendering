@@ -17,12 +17,15 @@ import javax.script.ScriptEngine;
 import javax.script.ScriptEngineManager;
 import javax.script.ScriptException;
 
+import jdk.nashorn.api.scripting.JSObject;
+import jdk.nashorn.api.scripting.ScriptObjectMirror;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import jdk.nashorn.api.scripting.ScriptObjectMirror;
-
+import com.google.common.base.Functions;
 import com.google.common.base.Verify;
+import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.io.CharSource;
@@ -90,32 +93,27 @@ public class JSModuleContainer {
 		return module;
 	}
 
-	private void define(Module module, String moduleName, ScriptObjectMirror defineCall) throws IOException,
+	private void define(Module module, String moduleName, JSObject defineCall) throws IOException,
 			ScriptException {
-		ScriptObjectMirror callback;
+		JSObject callback;
 		List<String> dependencies;
-		if (defineCall.size() == 1) {
-			ScriptObjectMirror arg0 = (ScriptObjectMirror) defineCall.getSlot(0);
+		if (defineCall.values().size() == 1) {
+			JSObject arg0 = (JSObject) defineCall.getSlot(0);
 			if (!arg0.isFunction())
 				throw new IllegalStateException(moduleName + ": single-arg call to define was not passed a function");
 			callback = arg0;
 			dependencies = ImmutableList.of();
 		}
-		else if (defineCall.size() == 2) {
-			ScriptObjectMirror arg0 = (ScriptObjectMirror) defineCall.getSlot(0);
-			List<String> foundDependencies = Lists.newArrayListWithExpectedSize(arg0.size());
-			for (int i = 0; i < arg0.size(); i++) {
-				Object value = arg0.getSlot(i);
-				foundDependencies.add(value.toString());
-			}
-			ScriptObjectMirror arg1 = (ScriptObjectMirror) defineCall.getSlot(1);
+		else if (defineCall.values().size() == 2) {
+			JSObject arg0 = (JSObject) defineCall.getSlot(0);
+			dependencies = ImmutableList.copyOf(Collections2.transform(arg0.values(), Functions.toStringFunction()));
+			JSObject arg1 = (JSObject) defineCall.getSlot(1);
 			if (!arg1.isFunction())
 				throw new IllegalStateException(moduleName + ": second argument to define was not passed a function");
 			callback = arg1;
-			dependencies = ImmutableList.copyOf(foundDependencies);
 		}
 		else {
-			throw new IllegalStateException(moduleName + ": was passed " + defineCall.size() + " arguments");
+			throw new IllegalStateException(moduleName + ": was passed " + defineCall.values().size() + " arguments");
 		}
 		List<Object> dependencyValues = Lists.newArrayListWithExpectedSize(dependencies.size());
 		for (String dependencyName : dependencies) {
