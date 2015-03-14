@@ -37,7 +37,7 @@ public class JSModuleContainer {
 	private final ScriptEngine nashornEngine = engineManager.getEngineByName("nashorn");
 	private final Map<String, Module> modules = new HashMap<>();
 	private final String root;
-	private final Queue<ScriptObjectMirror> defineCalls = new ConcurrentLinkedQueue<>();
+	private final Queue<JSObject> defineCalls = new ConcurrentLinkedQueue<>();
 
 	public JSModuleContainer(String root) {
 		this.root = root;
@@ -87,7 +87,7 @@ public class JSModuleContainer {
 			nashornEngine.eval(reader);
 		}
 		if (defineCalls.isEmpty()) throw new IllegalStateException("No call to define() from " + resourceName);
-		ScriptObjectMirror defineCall = defineCalls.poll();
+		JSObject defineCall = defineCalls.poll();
 		if (!defineCalls.isEmpty()) throw new IllegalStateException("Multiple calls to define() from " + resourceName);
 		define(module, moduleName, defineCall);
 		return module;
@@ -133,7 +133,7 @@ public class JSModuleContainer {
 		ScriptObjectMirror jsxTransformer = (ScriptObjectMirror) modules.get("JSXTransformer").value;
 		jsxTransformer.callMember("exec", "(function(define) { " + jsxSource + " })(function() { __loader.define(arguments) })");
 		if (defineCalls.isEmpty()) throw new IllegalStateException("No call to define() from " + resourceName);
-		ScriptObjectMirror defineCall = defineCalls.poll();
+		JSObject defineCall = defineCalls.poll();
 		if (!defineCalls.isEmpty()) throw new IllegalStateException("Multiple calls to define() from " + resourceName);
 		define(module, moduleName, defineCall);
 		return module;
@@ -179,7 +179,7 @@ public class JSModuleContainer {
 	}
 
 	public class LoaderProxy {
-		public void define(ScriptObjectMirror args) {
+		public void define(JSObject args) {
 			defineCalls.add(args);
 		}
 
