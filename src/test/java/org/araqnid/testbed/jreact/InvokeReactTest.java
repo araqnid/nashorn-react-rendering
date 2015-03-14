@@ -164,8 +164,11 @@ public class InvokeReactTest {
 
 	private void loadScript(String src) throws IOException, ScriptException {
 		CharSource charSource = Resources.asCharSource(Resources.getResource("web/" + src), StandardCharsets.UTF_8);
+		nashornEngine.getContext().setAttribute(ScriptEngine.FILENAME, src, ScriptContext.ENGINE_SCOPE);
 		try (BufferedReader reader = charSource.openBufferedStream()) {
 			nashornEngine.eval(reader);
+		} finally {
+			nashornEngine.getContext().removeAttribute(ScriptEngine.FILENAME, ScriptContext.ENGINE_SCOPE);
 		}
 	}
 
