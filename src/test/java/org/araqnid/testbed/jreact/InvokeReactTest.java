@@ -17,7 +17,7 @@ import javax.script.ScriptEngine;
 import javax.script.ScriptEngineManager;
 import javax.script.ScriptException;
 
-import jdk.nashorn.api.scripting.ScriptObjectMirror;
+import jdk.nashorn.api.scripting.JSObject;
 
 import org.hamcrest.Description;
 import org.hamcrest.Matcher;
@@ -98,8 +98,8 @@ public class InvokeReactTest {
 		String str = "xyzzyString";
 		Object rawProps = ImmutableMap.of("content", str);
 
-		ScriptObjectMirror json = (ScriptObjectMirror) nashornEngine.getBindings(ScriptContext.ENGINE_SCOPE).get("JSON");
-		Object props = json.callMember("parse", new ObjectMapper().writeValueAsString(rawProps));
+		Json json = nashornInvoker.getInterface(nashornEngine.getBindings(ScriptContext.ENGINE_SCOPE).get("JSON"), Json.class);
+		JSObject props = json.parse(new ObjectMapper().writeValueAsString(rawProps));
 
 		loadScript("react-with-addons.js");
 		Object jsReact = nashornEngine.eval("global.React");
@@ -185,5 +185,9 @@ public class InvokeReactTest {
 				description.appendText("matching ").appendValue(pattern.pattern());
 			}
 		};
+	}
+
+	public interface Json {
+		JSObject parse(String str);
 	}
 }

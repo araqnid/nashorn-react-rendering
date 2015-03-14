@@ -12,7 +12,6 @@ import java.io.IOException;
 import javax.script.ScriptException;
 
 import jdk.nashorn.api.scripting.JSObject;
-import jdk.nashorn.api.scripting.ScriptObjectMirror;
 
 import org.junit.Test;
 
@@ -42,7 +41,7 @@ public class JSModuleContainerTest {
 	public void loads_react() throws Exception {
 		JSModuleContainer container = new JSModuleContainer("test");
 		JSObject react = (JSObject) container.require("react");
-		assertThat((ScriptObjectMirror) react.getMember("renderToStaticMarkup"), jsFunction());
+		assertThat((JSObject) react.getMember("renderToStaticMarkup"), jsFunction());
 	}
 
 	@Test
@@ -83,7 +82,7 @@ public class JSModuleContainerTest {
 	public void loads_jsx_transformer() throws Exception {
 		JSModuleContainer container = new JSModuleContainer("test");
 		JSObject jsxTransformer = (JSObject) container.require("JSXTransformer");
-		assertThat((ScriptObjectMirror) jsxTransformer.getMember("exec"), jsFunction());
+		assertThat((JSObject) jsxTransformer.getMember("exec"), jsFunction());
 	}
 
 	@Test
