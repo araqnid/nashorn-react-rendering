@@ -25,7 +25,9 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Functions;
 import com.google.common.base.Verify;
+import com.google.common.collect.ClassToInstanceMap;
 import com.google.common.collect.Collections2;
+import com.google.common.collect.ImmutableClassToInstanceMap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.io.CharSource;
@@ -130,7 +132,7 @@ public class JSModuleContainer {
 		modules.put(moduleName, module);
 		String resourceName = root + "/" + residualName + ".jsx";
 		String jsxSource = Resources.asCharSource(Resources.getResource(resourceName), StandardCharsets.UTF_8).read();
-		JSXTransformer adaptor = ((Invocable) nashornEngine).getInterface(modules.get("JSXTransformer").value, JSXTransformer.class);
+		JSXTransformer adaptor = modules.get("JSXTransformer").adaptors.getInstance(JSXTransformer.class);
 		adaptor.exec( "(function(define) { " + jsxSource + " })(function() { __loader.define(arguments) })");
 		if (defineCalls.isEmpty()) throw new IllegalStateException("No call to define() from " + resourceName);
 		JSObject defineCall = defineCalls.poll();
@@ -149,12 +151,16 @@ public class JSModuleContainer {
 		Module jsxModule = new Module();
 		modules.put("react", reactModule);
 		modules.put("JSXTransformer", jsxModule);
+		Invocable nashornInvoker = (Invocable) nashornEngine;
 		try {
 			nashornEngine.eval("var global = {};");
 			loadScript("react-with-addons.js");
 			reactModule.value = (JSObject) nashornEngine.eval("global.React");
 			loadScript("jsx-transformer.js");
 			jsxModule.value = (JSObject) nashornEngine.eval("global.JSXTransformer");
+			jsxModule.adaptors = ImmutableClassToInstanceMap.builder()
+					.put(JSXTransformer.class, nashornInvoker.getInterface(jsxModule.value, JSXTransformer.class))
+					.build();
 		} catch (ScriptException | IOException | ClassCastException e) {
 			throw new IllegalStateException("Unable to load React/JSX", e);
 		}
@@ -170,12 +176,15 @@ public class JSModuleContainer {
 	}
 
 	private static final class Module {
+		private static final ClassToInstanceMap<Object> NONE = ImmutableClassToInstanceMap.builder().build();
+
 		enum State {
 			LOADING, LOADED
 		};
 
 		public State state = State.LOADING;
 		public Object value;
+		public ClassToInstanceMap<Object> adaptors = NONE;
 	}
 
 	public class LoaderProxy {
