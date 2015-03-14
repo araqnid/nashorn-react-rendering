@@ -4,6 +4,7 @@ import static com.google.common.base.Verify.verifyNotNull;
 
 import java.io.BufferedReader;
 import java.io.IOException;
+import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.List;
@@ -19,6 +20,7 @@ import javax.script.ScriptContext;
 import javax.script.ScriptEngine;
 import javax.script.ScriptEngineManager;
 import javax.script.ScriptException;
+import javax.script.SimpleScriptContext;
 
 import jdk.nashorn.api.scripting.JSObject;
 
@@ -178,7 +180,11 @@ public class JSModuleContainer {
 		modules.put("JSXTransformer", jsxModule);
 		Invocable nashornInvoker = (Invocable) nashornEngine;
 		try {
-			ScriptContext scriptContext = nashornEngine.getContext();
+			ScriptContext scriptContext = new SimpleScriptContext();
+			Bindings engineBindings = nashornEngine.createBindings();
+			scriptContext.setBindings(engineBindings, ScriptContext.ENGINE_SCOPE);
+			engineBindings.put("__loader", new LoaderProxy());
+			engineBindings.put("console", new Console());
 			nashornEngine.eval("var global = this", scriptContext);
 			loadScript("react-with-addons.js", scriptContext);
 			reactModule.value = verifyNotNull(scriptContext.getBindings(ScriptContext.ENGINE_SCOPE).get("React"));
@@ -198,7 +204,9 @@ public class JSModuleContainer {
 	}
 
 	private void loadScript(String src, ScriptContext scriptContext) throws IOException, ScriptException {
-		CharSource charSource = Resources.asCharSource(Resources.getResource("web/" + src), StandardCharsets.UTF_8);
+		URL resource = Resources.getResource("web/" + src);
+		scriptContext.setAttribute(ScriptEngine.FILENAME, resource.toString(), ScriptContext.ENGINE_SCOPE);
+		CharSource charSource = Resources.asCharSource(resource, StandardCharsets.UTF_8);
 		try (BufferedReader reader = charSource.openBufferedStream()) {
 			nashornEngine.eval(reader, scriptContext);
 		}
