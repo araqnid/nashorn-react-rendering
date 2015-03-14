@@ -156,6 +156,9 @@ public class JSModuleContainer {
 			nashornEngine.eval("var global = {};");
 			loadScript("react-with-addons.js");
 			reactModule.value = (JSObject) nashornEngine.eval("global.React");
+			reactModule.adaptors = ImmutableClassToInstanceMap.builder()
+					.put(React.class, nashornInvoker.getInterface(reactModule.value, React.class))
+					.build();
 			loadScript("jsx-transformer.js");
 			jsxModule.value = (JSObject) nashornEngine.eval("global.JSXTransformer");
 			jsxModule.adaptors = ImmutableClassToInstanceMap.builder()
@@ -216,5 +219,8 @@ public class JSModuleContainer {
 
 	public interface JSXTransformer {
 		void exec(String str);
+	}
+
+	public interface React {
 	}
 }
