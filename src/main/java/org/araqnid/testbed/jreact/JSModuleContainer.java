@@ -1,5 +1,7 @@
 package org.araqnid.testbed.jreact;
 
+import static com.google.common.base.Verify.verifyNotNull;
+
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -176,14 +178,14 @@ public class JSModuleContainer {
 		modules.put("JSXTransformer", jsxModule);
 		Invocable nashornInvoker = (Invocable) nashornEngine;
 		try {
-			nashornEngine.eval("var global = {};");
-			loadScript("react-with-addons.js");
-			reactModule.value = (JSObject) nashornEngine.eval("global.React");
+			nashornEngine.eval("var global = this");
+			loadScript("react-with-addons.js", nashornEngine.getContext());
+			reactModule.value = verifyNotNull(nashornEngine.getBindings(ScriptContext.ENGINE_SCOPE).get("React"));
 			reactModule.adaptors = ImmutableClassToInstanceMap.builder()
 					.put(React.class, nashornInvoker.getInterface(reactModule.value, React.class))
 					.build();
-			loadScript("jsx-transformer.js");
-			jsxModule.value = (JSObject) nashornEngine.eval("global.JSXTransformer");
+			loadScript("jsx-transformer.js", nashornEngine.getContext());
+			jsxModule.value = verifyNotNull(nashornEngine.getBindings(ScriptContext.ENGINE_SCOPE).get("JSXTransformer"));
 			jsxModule.adaptors = ImmutableClassToInstanceMap.builder()
 					.put(JSXTransformer.class, nashornInvoker.getInterface(jsxModule.value, JSXTransformer.class))
 					.build();
@@ -194,10 +196,10 @@ public class JSModuleContainer {
 		reactModule.state = Module.State.LOADED;
 	}
 
-	private void loadScript(String src) throws IOException, ScriptException {
+	private void loadScript(String src, ScriptContext scriptContext) throws IOException, ScriptException {
 		CharSource charSource = Resources.asCharSource(Resources.getResource("web/" + src), StandardCharsets.UTF_8);
 		try (BufferedReader reader = charSource.openBufferedStream()) {
-			nashornEngine.eval(reader);
+			nashornEngine.eval(reader, scriptContext);
 		}
 	}
 
