@@ -17,6 +17,9 @@ import javax.script.ScriptEngine;
 import javax.script.ScriptEngineManager;
 import javax.script.ScriptException;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import jdk.nashorn.api.scripting.ScriptObjectMirror;
 
 import com.google.common.base.Verify;
@@ -38,6 +41,7 @@ public class JSModuleContainer {
 		try {
 			Bindings engineBindings = nashornEngine.getBindings(ScriptContext.ENGINE_SCOPE);
 			engineBindings.put("__loader", new LoaderProxy());
+			engineBindings.put("console", new Console());
 			nashornEngine.eval("this.define = function() { __loader.define(arguments) }");
 		} catch (ScriptException e) {
 			throw new IllegalStateException("Unable to set up Nashorn engine", e);
@@ -184,6 +188,22 @@ public class JSModuleContainer {
 		@Override
 		public String toString() {
 			return "LoaderProxy:" + JSModuleContainer.this.toString();
+		}
+	}
+
+	public static class Console {
+		private static final Logger LOG = LoggerFactory.getLogger(JSModuleContainer.class.getName() + ".JS");
+
+		public void log(String message) {
+			LOG.info(message);
+		}
+
+		public void warn(String message) {
+			LOG.warn(message);
+		}
+
+		public void error(String message) {
+			LOG.error(message);
 		}
 	}
 }
