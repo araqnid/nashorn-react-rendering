@@ -245,5 +245,11 @@ public class JSModuleContainer {
 	}
 
 	public interface React {
+		JSObject createElement(String str);
+		JSObject createElement(String str, JSObject props, JSObject... children);
+		JSObject createElement(JSObject factory);
+		JSObject createElement(JSObject factory, JSObject props);
+		String renderToStaticMarkup(JSObject element);
+		String renderToString(JSObject element);
 	}
 }

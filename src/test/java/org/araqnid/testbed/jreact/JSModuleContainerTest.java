@@ -11,6 +11,7 @@ import java.io.IOException;
 
 import javax.script.ScriptException;
 
+import jdk.nashorn.api.scripting.JSObject;
 import jdk.nashorn.api.scripting.ScriptObjectMirror;
 
 import org.junit.Test;
@@ -40,9 +41,8 @@ public class JSModuleContainerTest {
 	@Test
 	public void loads_react() throws Exception {
 		JSModuleContainer container = new JSModuleContainer("test");
-		ScriptObjectMirror react = (ScriptObjectMirror) container.require("react");
-		assertThat(react.callMember("renderToStaticMarkup", react.callMember("createElement", "div", null, "test")),
-				equalTo("<div>test</div>"));
+		JSObject react = (JSObject) container.require("react");
+		assertThat((ScriptObjectMirror) react.getMember("renderToStaticMarkup"), jsFunction());
 	}
 
 	@Test
@@ -82,8 +82,8 @@ public class JSModuleContainerTest {
 	@Test
 	public void loads_jsx_transformer() throws Exception {
 		JSModuleContainer container = new JSModuleContainer("test");
-		ScriptObjectMirror jsxTransformer = (ScriptObjectMirror) container.require("JSXTransformer");
-		assertThat((ScriptObjectMirror) jsxTransformer.get("exec"), jsFunction());
+		JSObject jsxTransformer = (JSObject) container.require("JSXTransformer");
+		assertThat((ScriptObjectMirror) jsxTransformer.getMember("exec"), jsFunction());
 	}
 
 	@Test
@@ -95,18 +95,18 @@ public class JSModuleContainerTest {
 	@Test
 	public void loads_jsx_module() throws Exception {
 		JSModuleContainer container = new JSModuleContainer("test");
-		ScriptObjectMirror jsxComponent = (ScriptObjectMirror) container.require("jsx!Component");
-		ScriptObjectMirror react = (ScriptObjectMirror) container.require("react");
-		assertThat(react.callMember("renderToStaticMarkup", react.callMember("createElement", jsxComponent)),
+		JSObject jsxComponent = (JSObject) container.require("jsx!Component");
+		JSModuleContainer.React react = container.require("react", JSModuleContainer.React.class);
+		assertThat(react.renderToStaticMarkup(react.createElement(jsxComponent)),
 				equalTo("<div>Component content</div>"));
 	}
 
 	@Test
 	public void loads_dependent_jsx_module() throws Exception {
 		JSModuleContainer container = new JSModuleContainer("test");
-		ScriptObjectMirror jsxComponent = (ScriptObjectMirror) container.require("jsx!AggregateComponent");
-		ScriptObjectMirror react = (ScriptObjectMirror) container.require("react");
-		assertThat(react.callMember("renderToStaticMarkup", react.callMember("createElement", jsxComponent)),
+		JSObject jsxComponent = (JSObject) container.require("jsx!AggregateComponent");
+		JSModuleContainer.React react = container.require("react", JSModuleContainer.React.class);
+		assertThat(react.renderToStaticMarkup(react.createElement(jsxComponent)),
 				equalTo("<ul><li><div>Component1 content</div></li><li><div>Component2 content</div></li></ul>"));
 	}
 }
