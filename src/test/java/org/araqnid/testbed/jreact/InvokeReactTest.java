@@ -42,7 +42,7 @@ public class InvokeReactTest {
 	public void react_can_be_loaded() throws Exception {
 		nashornEngine.eval("global = {};");
 		loadScript("react-with-addons");
-		assertThat(nashornEngine.eval("global.React.version"), equalTo("0.12.1"));
+		assertThat(nashornEngine.eval("global.React.version"), equalTo(ReactResources.REACT_VERSION));
 	}
 
 	@Test
@@ -210,7 +210,7 @@ public class InvokeReactTest {
 		nashornEngine.eval("var global = this");
 
 		loadScript("react-with-addons");
-		assertThat(nashornEngine.eval("React.version"), equalTo("0.12.1"));
+		assertThat(nashornEngine.eval("React.version"), equalTo(ReactResources.REACT_VERSION));
 
 		assertThat(nashornEngine.getBindings(ScriptContext.ENGINE_SCOPE).get("React"), not(nullValue()));
 	}
