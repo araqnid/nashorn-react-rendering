@@ -4,6 +4,7 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -26,14 +27,17 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Functions;
+import com.google.common.base.Joiner;
 import com.google.common.collect.ClassToInstanceMap;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableClassToInstanceMap;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.io.CharSource;
 import com.google.common.io.Resources;
 
+import static com.google.common.base.Functions.toStringFunction;
 import static com.google.common.base.Verify.verifyNotNull;
 
 public class JSModuleContainer {
@@ -236,23 +240,33 @@ public class JSModuleContainer {
 		}
 	}
 
-	public static class Console {
+	public class Console {
 		private final Logger logger;
 
 		private Console(String context) {
 			logger = LoggerFactory.getLogger(JSModuleContainer.class.getName() + ".JS." + context);
 		}
 
-		public void log(String message) {
-			logger.info(message);
+		public void log(String message, JSObject... args) {
+			logger.info(format(message, args));
 		}
 
-		public void warn(String message) {
-			logger.warn(message);
+		public void info(String message, JSObject... args) {
+			logger.info(format(message, args));
 		}
 
-		public void error(String message) {
-			logger.error(message);
+		public void warn(String message, JSObject... args) {
+			logger.warn(format(message, args));
+		}
+
+		public void error(String message, JSObject... args) {
+			logger.error(format(message, args));
+		}
+
+		private String format(String message, JSObject... args) {
+			return Joiner.on(' ').join(
+					Iterables.concat(ImmutableList.<Object> of(message),
+							Lists.transform(Arrays.asList(args), toStringFunction())));
 		}
 	}
 

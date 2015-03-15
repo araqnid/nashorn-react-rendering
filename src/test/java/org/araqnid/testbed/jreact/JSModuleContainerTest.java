@@ -1,12 +1,5 @@
 package org.araqnid.testbed.jreact;
 
-import static org.araqnid.testbed.jreact.CallbackFromJavascriptTest.jsFunction;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.both;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.core.StringContains.containsString;
-import static org.junit.Assert.fail;
-
 import java.io.IOException;
 
 import javax.script.ScriptException;
@@ -14,6 +7,13 @@ import javax.script.ScriptException;
 import jdk.nashorn.api.scripting.JSObject;
 
 import org.junit.Test;
+
+import static org.araqnid.testbed.jreact.CallbackFromJavascriptTest.jsFunction;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.both;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.core.StringContains.containsString;
+import static org.junit.Assert.fail;
 
 public class JSModuleContainerTest {
 	@Test
@@ -59,8 +59,7 @@ public class JSModuleContainerTest {
 			container.require(moduleName, targetClass);
 			fail();
 		} catch (ClassCastException e) {
-			assertThat(e.getMessage(),
-					both(containsString(moduleName)).and(containsString(targetClass.getName())));
+			assertThat(e.getMessage(), both(containsString(moduleName)).and(containsString(targetClass.getName())));
 		}
 	}
 
@@ -73,8 +72,7 @@ public class JSModuleContainerTest {
 			container.require(moduleName, targetClass);
 			fail();
 		} catch (ClassCastException e) {
-			assertThat(e.getMessage(),
-					both(containsString(moduleName)).and(containsString(targetClass.getName())));
+			assertThat(e.getMessage(), both(containsString(moduleName)).and(containsString(targetClass.getName())));
 		}
 	}
 
@@ -107,5 +105,63 @@ public class JSModuleContainerTest {
 		JSModuleContainer.React react = container.require("react", JSModuleContainer.React.class);
 		assertThat(react.renderToStaticMarkup(react.createElement(jsxComponent)),
 				equalTo("<ul><li><div>Component1 content</div></li><li><div>Component2 content</div></li></ul>"));
+	}
+
+	@Test
+	public void console_log_available_to_js_module() throws Exception {
+		new JSModuleContainer("test").require("consoleLogger", ConsoleLogger.class).logMessage();
+	}
+
+	@Test
+	public void console_log_accepts_multiple_parameters() throws Exception {
+		new JSModuleContainer("test").require("consoleLogger", ConsoleLogger.class).logMessageWithObject();
+	}
+
+	@Test
+	public void console_info_available_to_js_module() throws Exception {
+		new JSModuleContainer("test").require("consoleLogger", ConsoleLogger.class).logInfo();
+	}
+
+	@Test
+	public void console_info_accepts_multiple_parameters() throws Exception {
+		new JSModuleContainer("test").require("consoleLogger", ConsoleLogger.class).logInfoWithObject();
+	}
+
+	@Test
+	public void console_warn_available_to_js_module() throws Exception {
+		new JSModuleContainer("test").require("consoleLogger", ConsoleLogger.class).logWarning();
+	}
+
+	@Test
+	public void console_warn_accepts_multiple_parameters() throws Exception {
+		new JSModuleContainer("test").require("consoleLogger", ConsoleLogger.class).logWarningWithObject();
+	}
+
+	@Test
+	public void console_error_available_to_js_module() throws Exception {
+		new JSModuleContainer("test").require("consoleLogger", ConsoleLogger.class).logError();
+	}
+
+	@Test
+	public void console_error_accepts_multiple_parameters() throws Exception {
+		new JSModuleContainer("test").require("consoleLogger", ConsoleLogger.class).logErrorWithObject();
+	}
+
+	public interface ConsoleLogger {
+		void logMessage();
+
+		void logMessageWithObject();
+
+		void logInfo();
+
+		void logInfoWithObject();
+
+		void logWarning();
+
+		void logWarningWithObject();
+
+		void logError();
+
+		void logErrorWithObject();
 	}
 }
