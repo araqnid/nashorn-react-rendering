@@ -17,6 +17,7 @@ import jdk.nashorn.api.scripting.JSObject;
 import org.hamcrest.Description;
 import org.hamcrest.Matcher;
 import org.hamcrest.TypeSafeDiagnosingMatcher;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -30,6 +31,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
+import static org.hamcrest.collection.IsIterableContainingInAnyOrder.containsInAnyOrder;
 
 public class InvokeReactTest {
 	private final ScriptEngineManager engineManager = new ScriptEngineManager();
@@ -213,6 +215,29 @@ public class InvokeReactTest {
 		assertThat(nashornEngine.getBindings(ScriptContext.ENGINE_SCOPE).get("React"), not(nullValue()));
 	}
 
+	@Test
+	public void stringify_formats_object_passed_directly() throws Exception {
+		assertThat(nashornEngine.eval("JSON.stringify({a:1})"), equalTo("{\"a\":1}"));
+	}
+
+	@Test
+	public void stringify_formats_object_passed_indirectly() throws Exception {
+		JSObject obj = (JSObject) nashornEngine.eval("({a:1})");
+		JSObject jsonStringify = (JSObject) nashornEngine.eval("JSON.stringify");
+		assertThat(obj.keySet(), equalTo(ImmutableSet.of("a")));
+		assertThat(obj.values(), containsInAnyOrder(1));
+		assertThat(jsonStringify.call(null, obj), equalTo("{\"a\":1}"));
+	}
+
+	@Test
+	@Ignore("so why doesn't this work?")
+	public void stringify_formats_object_passed_via_adaptor() throws Exception {
+		JSObject obj = (JSObject) nashornEngine.eval("({a:1})");
+		JSObject jsonObject = (JSObject) nashornEngine.eval("JSON");
+		Json json = nashornInvoker.getInterface(jsonObject, Json.class);
+		assertThat(json.stringify(obj, null, " "), equalTo("{\"a\":1}"));
+	}
+
 	private static String withReactSymbol(String js) {
 		return String.format("(function(React) { return %s })(global.React)", js);
 	}
@@ -247,6 +272,8 @@ public class InvokeReactTest {
 
 	public interface Json {
 		JSObject parse(String str);
+
+		String stringify(JSObject obj, JSObject replacer, String space);
 	}
 
 	public interface JSXTransformer {
