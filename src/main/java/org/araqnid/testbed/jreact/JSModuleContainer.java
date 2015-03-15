@@ -1,7 +1,5 @@
 package org.araqnid.testbed.jreact;
 
-import static com.google.common.base.Verify.verifyNotNull;
-
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.net.URL;
@@ -28,7 +26,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Functions;
-import com.google.common.base.Verify;
 import com.google.common.collect.ClassToInstanceMap;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableClassToInstanceMap;
@@ -37,13 +34,14 @@ import com.google.common.collect.Lists;
 import com.google.common.io.CharSource;
 import com.google.common.io.Resources;
 
+import static com.google.common.base.Verify.verifyNotNull;
+
 public class JSModuleContainer {
 	private static final Pattern JSX_PATTERN = Pattern.compile("jsx!(.+)");
 	private final ScriptEngineManager engineManager = new ScriptEngineManager();
 	private final ScriptEngine nashornEngine = engineManager.getEngineByName("nashorn");
 	private final Map<String, Module> modules = new HashMap<>();
 	private final String root;
-	private final Queue<JSObject> defineCalls = new ConcurrentLinkedQueue<>();
 
 	public JSModuleContainer(String root) {
 		this.root = root;
@@ -72,14 +70,12 @@ public class JSModuleContainer {
 		}
 		if (module.adaptors.containsKey(targetInterface)) return module.adaptors.getInstance(targetInterface);
 		Invocable nashornInvoker = (Invocable) nashornEngine;
-		if (!(module.value instanceof JSObject)) {
-			throw new ClassCastException("Non-object module '" + moduleName + "' is not compatible with " + targetInterface);
-		}
+		if (!(module.value instanceof JSObject)) { throw new ClassCastException("Non-object module '" + moduleName
+				+ "' is not compatible with " + targetInterface); }
 		T adaptor = nashornInvoker.getInterface(module.value, targetInterface);
-		if (adaptor == null) throw new ClassCastException("Module '" + moduleName + "' is not compatible with " + targetInterface);
-		module.adaptors = ImmutableClassToInstanceMap.builder()
-				.putAll(module.adaptors)
-				.put(targetInterface, adaptor)
+		if (adaptor == null)
+			throw new ClassCastException("Module '" + moduleName + "' is not compatible with " + targetInterface);
+		module.adaptors = ImmutableClassToInstanceMap.builder().putAll(module.adaptors).put(targetInterface, adaptor)
 				.build();
 		return adaptor;
 	}
@@ -99,31 +95,34 @@ public class JSModuleContainer {
 	}
 
 	private Module loadBasic(String moduleName) throws IOException, ScriptException {
-		Verify.verify(defineCalls.isEmpty());
 		Module module = new Module();
 		modules.put(moduleName, module);
+		URL resource = Resources.getResource(root + "/" + moduleName + ".js");
+		JSObject defineCall = loadModuleFactory(resource, Resources.asCharSource(resource, StandardCharsets.UTF_8));
+		define(module, moduleName, defineCall);
+		return module;
+	}
+
+	private JSObject loadModuleFactory(URL resource, CharSource charSource) throws ScriptException, IOException {
 		ScriptContext scriptContext = new SimpleScriptContext();
 		Bindings engineBindings = nashornEngine.createBindings();
 		scriptContext.setBindings(engineBindings, ScriptContext.ENGINE_SCOPE);
-		String resourceName = root + "/" + moduleName + ".js";
-		URL resource = Resources.getResource(resourceName);
-		CharSource charSource = Resources.asCharSource(resource, StandardCharsets.UTF_8);
-		engineBindings.put("__loader", new LoaderProxy());
+		LoaderProxy loaderProxy = new LoaderProxy();
+		engineBindings.put("__loader", loaderProxy);
 		engineBindings.put("console", new Console());
 		engineBindings.put("define", nashornEngine.eval("(function() { __loader.define(arguments) })", scriptContext));
 		scriptContext.setAttribute(ScriptEngine.FILENAME, resource.toString(), ScriptContext.ENGINE_SCOPE);
 		try (BufferedReader reader = charSource.openBufferedStream()) {
 			nashornEngine.eval(reader, scriptContext);
 		}
-		if (defineCalls.isEmpty()) throw new IllegalStateException("No call to define() from " + resourceName);
-		JSObject defineCall = defineCalls.poll();
-		if (!defineCalls.isEmpty()) throw new IllegalStateException("Multiple calls to define() from " + resourceName);
-		define(module, moduleName, defineCall);
-		return module;
+		if (loaderProxy.defineCalls.isEmpty()) throw new IllegalStateException("No call to define() from " + resource);
+		JSObject defineCall = loaderProxy.defineCalls.poll();
+		if (!loaderProxy.defineCalls.isEmpty())
+			throw new IllegalStateException("Multiple calls to define() from " + resource);
+		return defineCall;
 	}
 
-	private void define(Module module, String moduleName, JSObject defineCall) throws IOException,
-			ScriptException {
+	private void define(Module module, String moduleName, JSObject defineCall) throws IOException, ScriptException {
 		JSObject callback;
 		List<String> dependencies;
 		if (defineCall.values().size() == 1) {
@@ -154,26 +153,13 @@ public class JSModuleContainer {
 
 	private Module loadJSX(String moduleName, String residualName) throws IOException, ScriptException {
 		ensureReactLoaded();
-		Verify.verify(defineCalls.isEmpty());
 		Module module = new Module();
 		modules.put(moduleName, module);
-		String resourceName = root + "/" + residualName + ".jsx";
-		URL resource = Resources.getResource(resourceName);
-		String jsxSource = Resources.asCharSource(resource, StandardCharsets.UTF_8).read();
+		URL resource = Resources.getResource(root + "/" + residualName + ".jsx");
 		JSXTransformer adaptor = modules.get("JSXTransformer").adaptors.getInstance(JSXTransformer.class);
-		JSObject jsTransformOutput = adaptor.transform(jsxSource);
+		JSObject jsTransformOutput = adaptor.transform(Resources.asCharSource(resource, StandardCharsets.UTF_8).read());
 		String jsSource = (String) jsTransformOutput.getMember("code");
-		ScriptContext scriptContext = new SimpleScriptContext();
-		Bindings engineBindings = nashornEngine.createBindings();
-		scriptContext.setBindings(engineBindings, ScriptContext.ENGINE_SCOPE);
-		engineBindings.put("__loader", new LoaderProxy());
-		engineBindings.put("console", new Console());
-		engineBindings.put("define", nashornEngine.eval("(function() { __loader.define(arguments) })", scriptContext));
-		scriptContext.setAttribute(ScriptEngine.FILENAME, resource.toString(), ScriptContext.ENGINE_SCOPE);
-		nashornEngine.eval(jsSource, scriptContext);
-		if (defineCalls.isEmpty()) throw new IllegalStateException("No call to define() from " + resourceName);
-		JSObject defineCall = defineCalls.poll();
-		if (!defineCalls.isEmpty()) throw new IllegalStateException("Multiple calls to define() from " + resourceName);
+		JSObject defineCall = loadModuleFactory(resource, CharSource.wrap(jsSource));
 		define(module, moduleName, defineCall);
 		return module;
 	}
@@ -199,8 +185,7 @@ public class JSModuleContainer {
 			loadScript("react-with-addons.js", scriptContext);
 			reactModule.value = verifyNotNull(scriptContext.getBindings(ScriptContext.ENGINE_SCOPE).get("React"));
 			reactModule.adaptors = ImmutableClassToInstanceMap.builder()
-					.put(React.class, nashornInvoker.getInterface(reactModule.value, React.class))
-					.build();
+					.put(React.class, nashornInvoker.getInterface(reactModule.value, React.class)).build();
 			loadScript("jsx-transformer.js", scriptContext);
 			jsxModule.value = verifyNotNull(scriptContext.getBindings(ScriptContext.ENGINE_SCOPE).get("JSXTransformer"));
 			jsxModule.adaptors = ImmutableClassToInstanceMap.builder()
@@ -234,14 +219,16 @@ public class JSModuleContainer {
 		public ClassToInstanceMap<Object> adaptors = NONE;
 	}
 
-	public class LoaderProxy {
+	public static class LoaderProxy {
+		final Queue<JSObject> defineCalls = new ConcurrentLinkedQueue<>();
+
 		public void define(JSObject args) {
 			defineCalls.add(args);
 		}
 
 		@Override
 		public String toString() {
-			return "LoaderProxy:" + JSModuleContainer.this.toString();
+			return "LoaderProxy";
 		}
 	}
 
@@ -263,15 +250,21 @@ public class JSModuleContainer {
 
 	public interface JSXTransformer {
 		void exec(String str);
+
 		JSObject transform(String source);
 	}
 
 	public interface React {
 		JSObject createElement(String str);
+
 		JSObject createElement(String str, JSObject props, JSObject... children);
+
 		JSObject createElement(JSObject factory);
+
 		JSObject createElement(JSObject factory, JSObject props);
+
 		String renderToStaticMarkup(JSObject element);
+
 		String renderToString(JSObject element);
 	}
 }
