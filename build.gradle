@@ -93,7 +93,7 @@ task reactVersionProperties {
     def generatedSourceDir = new File("${project.buildDir}/generated-sources/${sourceSet.name}")
     def versionPropertiesFile = new File(generatedSourceDir, "org/araqnid/testbed/jreact/react.version.properties")
     outputs.dir generatedSourceDir
-    outputs.upToDateWhen { versionPropertiesFile.text.indexOf(project.ext.reactVersion) > 0 }
+    outputs.upToDateWhen { versionPropertiesFile.exists() && versionPropertiesFile.text.indexOf(project.ext.reactVersion) > 0 }
     outputs.file versionPropertiesFile
     sourceSet.resources.srcDir generatedSourceDir
     def processResourcesTask = project.tasks.getByName(sourceSet.processResourcesTaskName)
