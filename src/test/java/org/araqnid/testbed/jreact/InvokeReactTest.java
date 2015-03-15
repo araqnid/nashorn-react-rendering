@@ -26,7 +26,6 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.io.CharSource;
 import com.google.common.io.Resources;
 
-import static org.araqnid.testbed.jreact.JSObjectMatchers.jsEmptyObject;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.not;
@@ -127,10 +126,9 @@ public class InvokeReactTest {
 		String source = "var content = <Content>foo</Content>;";
 
 		JSObject transformOutput = jsxTransformer.transform(source);
-		assertThat(transformOutput.keySet(), equalTo(ImmutableSet.of("code", "extra")));
+		assertThat(transformOutput.keySet(), equalTo(ImmutableSet.of("code")));
 		assertThat(transformOutput.getMember("code"),
 				equalTo("var content = React.createElement(Content, null, \"foo\");"));
-		assertThat((JSObject) transformOutput.getMember("extra"), jsEmptyObject());
 	}
 
 	@Test
@@ -145,10 +143,9 @@ public class InvokeReactTest {
 		JSXTransformer.Options options = new JSXTransformer.Options(false, false);
 
 		JSObject transformOutput = jsxTransformer.transform(source, options);
-		assertThat(transformOutput.keySet(), equalTo(ImmutableSet.of("code", "extra")));
+		assertThat(transformOutput.keySet(), equalTo(ImmutableSet.of("code")));
 		assertThat(transformOutput.getMember("code"),
 				equalTo("var content = React.createElement(Content, null, \"foo\");"));
-		assertThat((JSObject) transformOutput.getMember("extra"), jsEmptyObject());
 	}
 
 	@Test
@@ -163,10 +160,9 @@ public class InvokeReactTest {
 		JSXTransformer.Options options = new JSXTransformer.Options(true, false);
 
 		JSObject transformOutput = jsxTransformer.transform(source, options);
-		assertThat(transformOutput.keySet(), equalTo(ImmutableSet.of("code", "extra")));
+		assertThat(transformOutput.keySet(), equalTo(ImmutableSet.of("code")));
 		assertThat(transformOutput.getMember("code"),
 				equalTo("var f = function(v)  {return this.props[v];}.bind(this);"));
-		assertThat((JSObject) transformOutput.getMember("extra"), jsEmptyObject());
 	}
 
 	@Test
