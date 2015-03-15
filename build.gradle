@@ -7,7 +7,7 @@ sourceCompatibility = 1.8
 version = '0.0.' + (System.getenv("BUILD_NUMBER") ?: System.getenv("TRAVIS_BUILD_NUMBER") ?: "0")
 
 ext {
-  reactVersion = '0.12.2'
+  reactVersion = '0.13.0'
   jettyVersion = '9.2.10.v20150310'
   jacksonVersion = '2.5.1'
   resteasyVersion = '3.0.10.Final'
