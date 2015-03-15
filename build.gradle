@@ -77,16 +77,21 @@ dependencies {
     compile 'org.apache.httpcomponents:httpclient:4.4'
 }
 
-task runtimeDeps(dependsOn: 'processResources') << {
-    def sha1 = java.security.MessageDigest.getInstance("SHA-1");
-    def metainf = new File("$buildDir/resources/main/META-INF");
-    metainf.mkdirs()
-    def depsFile = new File(metainf, project.name + ".deps.txt");
-    depsFile.text = ''
-    configurations.runtime.resolvedConfiguration.resolvedArtifacts.each { artifact ->
-        depsFile.text += sha1.digest(artifact.file.bytes).collect {String.format "%02x", it}.join() + ' ' + artifact.moduleVersion.id + ' ' + artifact.type + '\n'
+task runtimeDeps(dependsOn: 'processResources') {
+    def sha1 = java.security.MessageDigest.getInstance("SHA-1")
+    def metainf = new File("$buildDir/resources/main/META-INF")
+    def depsFile = new File(metainf, project.name + ".deps.txt")
+
+    doLast {
+        metainf.mkdirs()
+        depsFile.text = ''
+        configurations.runtime.resolvedConfiguration.resolvedArtifacts.each { artifact ->
+            depsFile.text += sha1.digest(artifact.file.bytes).collect {String.format "%02x", it}.join() + ' ' + artifact.moduleVersion.id + ' ' + artifact.type + '\n'
+        }
     }
 }
+
+jar.dependsOn(runtimeDeps)
 
 task reactVersionProperties {
     def sourceSet = project.sourceSets.main
@@ -103,8 +108,6 @@ task reactVersionProperties {
         versionPropertiesFile.text = "react.version=" + project.ext.reactVersion + "\n"
     }
 }
-
-jar.dependsOn(runtimeDeps)
 
 task integrationTest(type: Test, dependsOn: 'test') {
     testClassesDir = sourceSets.integrationTest.output.classesDir
