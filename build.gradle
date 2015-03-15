@@ -95,6 +95,8 @@ task reactVersionProperties {
     outputs.dir generatedSourceDir
     outputs.file versionPropertiesFile
     sourceSet.resources.srcDir generatedSourceDir
+    def processResourcesTask = project.tasks.getByName(sourceSet.processResourcesTaskName)
+    processResourcesTask.dependsOn(project.tasks.getByName("reactVersionProperties"))
     doLast {
         new File(versionPropertiesFile.parent).mkdirs()
         versionPropertiesFile.text = "react.version=" + project.ext.reactVersion + "\n"
