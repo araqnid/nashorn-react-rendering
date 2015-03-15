@@ -8,7 +8,7 @@ import jdk.nashorn.api.scripting.JSObject;
 
 import org.junit.Test;
 
-import static org.araqnid.testbed.jreact.CallbackFromJavascriptTest.jsFunction;
+import static org.araqnid.testbed.jreact.JSObjectMatchers.jsFunction;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.both;
 import static org.hamcrest.Matchers.equalTo;

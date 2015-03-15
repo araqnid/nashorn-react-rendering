@@ -25,6 +25,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.io.CharSource;
 import com.google.common.io.Resources;
 
+import static org.araqnid.testbed.jreact.JSObjectMatchers.jsEmptyObject;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.not;
@@ -224,21 +225,6 @@ public class InvokeReactTest {
 		} finally {
 			nashornEngine.getContext().removeAttribute(ScriptEngine.FILENAME, ScriptContext.ENGINE_SCOPE);
 		}
-	}
-
-	private static Matcher<? super JSObject> jsEmptyObject() {
-		return new TypeSafeDiagnosingMatcher<JSObject>() {
-			@Override
-			protected boolean matchesSafely(JSObject item, Description mismatchDescription) {
-				mismatchDescription.appendValue(item);
-				return item.values().isEmpty();
-			}
-
-			@Override
-			public void describeTo(Description description) {
-				description.appendText("{}");
-			}
-		};
 	}
 
 	private static Matcher<String> matches(String regex) {
