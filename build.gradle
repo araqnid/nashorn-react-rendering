@@ -8,7 +8,7 @@ version = '0.0.' + (System.getenv("BUILD_NUMBER") ?: System.getenv("TRAVIS_BUILD
 
 ext {
   reactVersion = '0.12.2'
-  jettyVersion = '9.2.9.v20150224'
+  jettyVersion = '9.2.10.v20150310'
   jacksonVersion = '2.5.1'
   resteasyVersion = '3.0.10.Final'
   hibernateVersion = '4.3.8.Final'
