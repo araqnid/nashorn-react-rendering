@@ -98,18 +98,20 @@ public class JSModuleContainer {
 		Module module = new Module();
 		modules.put(moduleName, module);
 		URL resource = Resources.getResource(root + "/" + moduleName + ".js");
-		JSObject defineCall = loadModuleFactory(resource, Resources.asCharSource(resource, StandardCharsets.UTF_8));
+		JSObject defineCall = loadModuleFactory(moduleName, resource,
+				Resources.asCharSource(resource, StandardCharsets.UTF_8));
 		define(module, moduleName, defineCall);
 		return module;
 	}
 
-	private JSObject loadModuleFactory(URL resource, CharSource charSource) throws ScriptException, IOException {
+	private JSObject loadModuleFactory(String moduleName, URL resource, CharSource charSource) throws ScriptException,
+			IOException {
 		ScriptContext scriptContext = new SimpleScriptContext();
 		Bindings engineBindings = nashornEngine.createBindings();
 		scriptContext.setBindings(engineBindings, ScriptContext.ENGINE_SCOPE);
 		LoaderProxy loaderProxy = new LoaderProxy();
 		engineBindings.put("__loader", loaderProxy);
-		engineBindings.put("console", new Console());
+		engineBindings.put("console", new Console(moduleName.replace('/', '_')));
 		engineBindings.put("define", nashornEngine.eval("(function() { __loader.define(arguments) })", scriptContext));
 		scriptContext.setAttribute(ScriptEngine.FILENAME, resource.toString(), ScriptContext.ENGINE_SCOPE);
 		try (BufferedReader reader = charSource.openBufferedStream()) {
@@ -159,7 +161,7 @@ public class JSModuleContainer {
 		JSXTransformer adaptor = modules.get("JSXTransformer").adaptors.getInstance(JSXTransformer.class);
 		JSObject jsTransformOutput = adaptor.transform(Resources.asCharSource(resource, StandardCharsets.UTF_8).read());
 		String jsSource = (String) jsTransformOutput.getMember("code");
-		JSObject defineCall = loadModuleFactory(resource, CharSource.wrap(jsSource));
+		JSObject defineCall = loadModuleFactory(residualName, resource, CharSource.wrap(jsSource));
 		define(module, moduleName, defineCall);
 		return module;
 	}
@@ -170,41 +172,43 @@ public class JSModuleContainer {
 			if (reactModule.state == Module.State.LOADED) return;
 			throw new IllegalStateException("React module is in state " + reactModule.state);
 		}
-		reactModule = new Module();
-		Module jsxModule = new Module();
-		modules.put("react", reactModule);
-		modules.put("JSXTransformer", jsxModule);
-		Invocable nashornInvoker = (Invocable) nashornEngine;
 		try {
-			ScriptContext scriptContext = new SimpleScriptContext();
-			Bindings engineBindings = nashornEngine.createBindings();
-			scriptContext.setBindings(engineBindings, ScriptContext.ENGINE_SCOPE);
-			engineBindings.put("__loader", new LoaderProxy());
-			engineBindings.put("console", new Console());
-			nashornEngine.eval("var global = this", scriptContext);
-			loadScript("react-with-addons.js", scriptContext);
-			reactModule.value = verifyNotNull(scriptContext.getBindings(ScriptContext.ENGINE_SCOPE).get("React"));
-			reactModule.adaptors = ImmutableClassToInstanceMap.builder()
-					.put(React.class, nashornInvoker.getInterface(reactModule.value, React.class)).build();
-			loadScript("jsx-transformer.js", scriptContext);
-			jsxModule.value = verifyNotNull(scriptContext.getBindings(ScriptContext.ENGINE_SCOPE).get("JSXTransformer"));
-			jsxModule.adaptors = ImmutableClassToInstanceMap.builder()
-					.put(JSXTransformer.class, nashornInvoker.getInterface(jsxModule.value, JSXTransformer.class))
-					.build();
-		} catch (ScriptException | IOException | ClassCastException e) {
-			throw new IllegalStateException("Unable to load React/JSX", e);
+			loadReactModule("JSXTransformer", "jsx-transformer.js", "JSXTransformer", JSXTransformer.class);
+		} catch (IOException | ScriptException e) {
+			throw new IllegalStateException("Unable to load JSXTransformer", e);
 		}
-		jsxModule.state = Module.State.LOADED;
-		reactModule.state = Module.State.LOADED;
+		try {
+			loadReactModule("react", "react-with-addons.js", "React", React.class);
+		} catch (IOException | ScriptException e) {
+			throw new IllegalStateException("Unable to load React", e);
+		}
 	}
 
-	private void loadScript(String src, ScriptContext scriptContext) throws IOException, ScriptException {
-		URL resource = Resources.getResource("web/" + src);
+	private <T> Module loadReactModule(String moduleName, String scriptName, String symbol, Class<T> adaptTo)
+			throws IOException, ScriptException {
+		Module module = new Module();
+		modules.put(moduleName, module);
+		module.value = loadReactScript(Resources.getResource("web/" + scriptName), symbol);
+		Invocable nashornInvoker = (Invocable) nashornEngine;
+		module.adaptors = ImmutableClassToInstanceMap.builder()
+				.put(adaptTo, nashornInvoker.getInterface(module.value, adaptTo)).build();
+		module.state = Module.State.LOADED;
+		return module;
+	}
+
+	private JSObject loadReactScript(URL resource, String symbol) throws IOException, ScriptException {
+		ScriptContext scriptContext = new SimpleScriptContext();
+		Bindings engineBindings = nashornEngine.createBindings();
+		scriptContext.setBindings(engineBindings, ScriptContext.ENGINE_SCOPE);
+		engineBindings.put("__loader", new LoaderProxy());
+		engineBindings.put("console", new Console(symbol));
+		nashornEngine.eval("var global = this", scriptContext);
 		scriptContext.setAttribute(ScriptEngine.FILENAME, resource.toString(), ScriptContext.ENGINE_SCOPE);
 		CharSource charSource = Resources.asCharSource(resource, StandardCharsets.UTF_8);
 		try (BufferedReader reader = charSource.openBufferedStream()) {
 			nashornEngine.eval(reader, scriptContext);
 		}
+		return (JSObject) verifyNotNull(scriptContext.getBindings(ScriptContext.ENGINE_SCOPE).get(symbol));
 	}
 
 	private static final class Module {
@@ -233,18 +237,22 @@ public class JSModuleContainer {
 	}
 
 	public static class Console {
-		private static final Logger LOG = LoggerFactory.getLogger(JSModuleContainer.class.getName() + ".JS");
+		private final Logger logger;
+
+		private Console(String context) {
+			logger = LoggerFactory.getLogger(JSModuleContainer.class.getName() + ".JS." + context);
+		}
 
 		public void log(String message) {
-			LOG.info(message);
+			logger.info(message);
 		}
 
 		public void warn(String message) {
-			LOG.warn(message);
+			logger.warn(message);
 		}
 
 		public void error(String message) {
-			LOG.error(message);
+			logger.error(message);
 		}
 	}
 

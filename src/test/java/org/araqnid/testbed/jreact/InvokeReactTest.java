@@ -1,10 +1,5 @@
 package org.araqnid.testbed.jreact;
 
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.not;
-import static org.hamcrest.Matchers.nullValue;
-
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -29,6 +24,11 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.io.CharSource;
 import com.google.common.io.Resources;
+
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.not;
+import static org.hamcrest.Matchers.nullValue;
 
 public class InvokeReactTest {
 	private final ScriptEngineManager engineManager = new ScriptEngineManager();
@@ -94,12 +94,12 @@ public class InvokeReactTest {
 	@Test
 	public void renders_component_with_data_from_props() throws Exception {
 		nashornEngine.eval("global = {};");
-		nashornEngine.getBindings(ScriptContext.ENGINE_SCOPE).put("console", new JSModuleContainer.Console());
 
 		String str = "xyzzyString";
 		Object rawProps = ImmutableMap.of("content", str);
 
-		Json json = nashornInvoker.getInterface(nashornEngine.getBindings(ScriptContext.ENGINE_SCOPE).get("JSON"), Json.class);
+		Json json = nashornInvoker.getInterface(nashornEngine.getBindings(ScriptContext.ENGINE_SCOPE).get("JSON"),
+				Json.class);
 		JSObject props = json.parse(new ObjectMapper().writeValueAsString(rawProps));
 
 		loadScript("react-with-addons.js");
@@ -110,7 +110,7 @@ public class InvokeReactTest {
 		Object component = nashornInvoker.invokeMethod(jsReact, "createClass", componentBody);
 		Object renderElement = nashornInvoker.invokeMethod(jsReact, "createElement", component, props);
 		Object renderOutput = nashornInvoker.invokeMethod(jsReact, "renderToStaticMarkup", renderElement);
-		assertThat(renderOutput, equalTo("<div>content: "+ str + "</div>"));
+		assertThat(renderOutput, equalTo("<div>content: " + str + "</div>"));
 	}
 
 	@Test
@@ -118,14 +118,17 @@ public class InvokeReactTest {
 		nashornEngine.eval("global = {};");
 
 		loadScript("jsx-transformer.js");
-		JSXTransformer jsxTransformer = nashornInvoker.getInterface(nashornEngine.eval("global.JSXTransformer"), JSXTransformer.class);
-		Json json = nashornInvoker.getInterface(nashornEngine.getBindings(ScriptContext.ENGINE_SCOPE).get("JSON"), Json.class);
+		JSXTransformer jsxTransformer = nashornInvoker.getInterface(nashornEngine.eval("global.JSXTransformer"),
+				JSXTransformer.class);
+		Json json = nashornInvoker.getInterface(nashornEngine.getBindings(ScriptContext.ENGINE_SCOPE).get("JSON"),
+				Json.class);
 
 		String source = "var content = <Content>foo</Content>;";
 
 		JSObject transformOutput = jsxTransformer.transform(source);
 		assertThat(transformOutput.keySet(), equalTo(ImmutableSet.of("code", "extra")));
-		assertThat(transformOutput.getMember("code"), equalTo("var content = React.createElement(Content, null, \"foo\");"));
+		assertThat(transformOutput.getMember("code"),
+				equalTo("var content = React.createElement(Content, null, \"foo\");"));
 		assertThat(json.stringify((JSObject) transformOutput.getMember("extra")), equalTo("undefined"));
 	}
 
@@ -134,15 +137,18 @@ public class InvokeReactTest {
 		nashornEngine.eval("global = {};");
 
 		loadScript("jsx-transformer.js");
-		JSXTransformer jsxTransformer = nashornInvoker.getInterface(nashornEngine.eval("global.JSXTransformer"), JSXTransformer.class);
-		Json json = nashornInvoker.getInterface(nashornEngine.getBindings(ScriptContext.ENGINE_SCOPE).get("JSON"), Json.class);
+		JSXTransformer jsxTransformer = nashornInvoker.getInterface(nashornEngine.eval("global.JSXTransformer"),
+				JSXTransformer.class);
+		Json json = nashornInvoker.getInterface(nashornEngine.getBindings(ScriptContext.ENGINE_SCOPE).get("JSON"),
+				Json.class);
 
 		String source = "var content = <Content>foo</Content>;";
 		JSXTransformer.Options options = new JSXTransformer.Options(false, false);
 
 		JSObject transformOutput = jsxTransformer.transform(source, options);
 		assertThat(transformOutput.keySet(), equalTo(ImmutableSet.of("code", "extra")));
-		assertThat(transformOutput.getMember("code"), equalTo("var content = React.createElement(Content, null, \"foo\");"));
+		assertThat(transformOutput.getMember("code"),
+				equalTo("var content = React.createElement(Content, null, \"foo\");"));
 		assertThat(json.stringify((JSObject) transformOutput.getMember("extra")), equalTo("undefined"));
 	}
 
@@ -151,15 +157,18 @@ public class InvokeReactTest {
 		nashornEngine.eval("global = {};");
 
 		loadScript("jsx-transformer.js");
-		JSXTransformer jsxTransformer = nashornInvoker.getInterface(nashornEngine.eval("global.JSXTransformer"), JSXTransformer.class);
-		Json json = nashornInvoker.getInterface(nashornEngine.getBindings(ScriptContext.ENGINE_SCOPE).get("JSON"), Json.class);
+		JSXTransformer jsxTransformer = nashornInvoker.getInterface(nashornEngine.eval("global.JSXTransformer"),
+				JSXTransformer.class);
+		Json json = nashornInvoker.getInterface(nashornEngine.getBindings(ScriptContext.ENGINE_SCOPE).get("JSON"),
+				Json.class);
 
 		String source = "var f = v => this.props[v];";
 		JSXTransformer.Options options = new JSXTransformer.Options(true, false);
 
 		JSObject transformOutput = jsxTransformer.transform(source, options);
 		assertThat(transformOutput.keySet(), equalTo(ImmutableSet.of("code", "extra")));
-		assertThat(transformOutput.getMember("code"), equalTo("var f = function(v)  {return this.props[v];}.bind(this);"));
+		assertThat(transformOutput.getMember("code"),
+				equalTo("var f = function(v)  {return this.props[v];}.bind(this);"));
 		assertThat(json.stringify((JSObject) transformOutput.getMember("extra")), equalTo("undefined"));
 	}
 
@@ -243,6 +252,7 @@ public class InvokeReactTest {
 
 	public interface Json {
 		JSObject parse(String str);
+
 		String stringify(JSObject obj);
 	}
 
