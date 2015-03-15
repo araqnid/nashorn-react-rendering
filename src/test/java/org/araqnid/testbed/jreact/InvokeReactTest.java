@@ -41,14 +41,14 @@ public class InvokeReactTest {
 	@Test
 	public void react_can_be_loaded() throws Exception {
 		nashornEngine.eval("global = {};");
-		loadScript("react-with-addons.js");
+		loadScript("react-with-addons");
 		assertThat(nashornEngine.eval("global.React.version"), equalTo("0.12.1"));
 	}
 
 	@Test
 	public void jsx_transformer_can_be_loaded() throws Exception {
 		nashornEngine.eval("global = {};");
-		loadScript("jsx-transformer.js");
+		loadScript("JSXTransformer");
 		assertThat(nashornEngine.eval("global.JSXTransformer"), not(nullValue()));
 	}
 
@@ -56,7 +56,7 @@ public class InvokeReactTest {
 	public void renders_static_element() throws Exception {
 		nashornEngine.eval("global = {};");
 
-		loadScript("react-with-addons.js");
+		loadScript("react-with-addons");
 		Object jsReact = nashornEngine.eval("global.React");
 
 		Object element = nashornInvoker.invokeMethod(jsReact, "createElement", "div", null, "Static content");
@@ -69,7 +69,7 @@ public class InvokeReactTest {
 	public void renders_static_element_with_react_ids() throws Exception {
 		nashornEngine.eval("global = {};");
 
-		loadScript("react-with-addons.js");
+		loadScript("react-with-addons");
 		Object jsReact = nashornEngine.eval("global.React");
 
 		Object element = nashornInvoker.invokeMethod(jsReact, "createElement", "div", null, "Static content");
@@ -83,7 +83,7 @@ public class InvokeReactTest {
 	public void renders_static_component() throws Exception {
 		nashornEngine.eval("global = {};");
 
-		loadScript("react-with-addons.js");
+		loadScript("react-with-addons");
 		Object jsReact = nashornEngine.eval("global.React");
 
 		Object componentBody = nashornEngine
@@ -105,7 +105,7 @@ public class InvokeReactTest {
 				Json.class);
 		JSObject props = json.parse(new ObjectMapper().writeValueAsString(rawProps));
 
-		loadScript("react-with-addons.js");
+		loadScript("react-with-addons");
 		Object jsReact = nashornEngine.eval("global.React");
 
 		Object componentBody = nashornEngine
@@ -120,7 +120,7 @@ public class InvokeReactTest {
 	public void transforms_jsx_source() throws Exception {
 		nashornEngine.eval("global = {};");
 
-		loadScript("jsx-transformer.js");
+		loadScript("JSXTransformer");
 		JSXTransformer jsxTransformer = nashornInvoker.getInterface(nashornEngine.eval("global.JSXTransformer"),
 				JSXTransformer.class);
 
@@ -137,7 +137,7 @@ public class InvokeReactTest {
 	public void transforms_jsx_source_with_options() throws Exception {
 		nashornEngine.eval("global = {};");
 
-		loadScript("jsx-transformer.js");
+		loadScript("JSXTransformer");
 		JSXTransformer jsxTransformer = nashornInvoker.getInterface(nashornEngine.eval("global.JSXTransformer"),
 				JSXTransformer.class);
 
@@ -155,7 +155,7 @@ public class InvokeReactTest {
 	public void transforms_jsx_source_with_options_specifying_harmony_transform() throws Exception {
 		nashornEngine.eval("global = {};");
 
-		loadScript("jsx-transformer.js");
+		loadScript("JSXTransformer");
 		JSXTransformer jsxTransformer = nashornInvoker.getInterface(nashornEngine.eval("global.JSXTransformer"),
 				JSXTransformer.class);
 
@@ -173,10 +173,10 @@ public class InvokeReactTest {
 	public void renders_jsx_component() throws Exception {
 		nashornEngine.eval("global = {};");
 
-		loadScript("react-with-addons.js");
+		loadScript("react-with-addons");
 		Object jsReact = nashornEngine.eval("global.React");
 
-		loadScript("jsx-transformer.js");
+		loadScript("JSXTransformer");
 		Object jsJSXTransformer = nashornEngine.eval("global.JSXTransformer");
 
 		Object jsxComponent = nashornInvoker.invokeMethod(jsJSXTransformer, "exec",
@@ -190,12 +190,12 @@ public class InvokeReactTest {
 	public void react_symbol_can_be_added_to_implicit_global() throws Exception {
 		nashornEngine.eval("global = {};");
 
-		loadScript("react-with-addons.js");
+		loadScript("react-with-addons");
 		Object jsReact = nashornEngine.eval("global.React");
 		Bindings bindings = nashornEngine.getBindings(ScriptContext.ENGINE_SCOPE);
 		bindings.put("React", jsReact);
 
-		loadScript("jsx-transformer.js");
+		loadScript("JSXTransformer");
 		Object jsJSXTransformer = nashornEngine.eval("global.JSXTransformer");
 
 		Object jsxComponent = nashornInvoker.invokeMethod(jsJSXTransformer, "exec",
@@ -209,7 +209,7 @@ public class InvokeReactTest {
 	public void modules_can_export_directly_to_implicit_global() throws Exception {
 		nashornEngine.eval("var global = this");
 
-		loadScript("react-with-addons.js");
+		loadScript("react-with-addons");
 		assertThat(nashornEngine.eval("React.version"), equalTo("0.12.1"));
 
 		assertThat(nashornEngine.getBindings(ScriptContext.ENGINE_SCOPE).get("React"), not(nullValue()));
@@ -243,7 +243,7 @@ public class InvokeReactTest {
 	}
 
 	private void loadScript(String src) throws IOException, ScriptException {
-		CharSource charSource = Resources.asCharSource(Resources.getResource("web/" + src), StandardCharsets.UTF_8);
+		CharSource charSource = Resources.asCharSource(ReactResources.resourceFor(src), StandardCharsets.UTF_8);
 		nashornEngine.getContext().setAttribute(ScriptEngine.FILENAME, src, ScriptContext.ENGINE_SCOPE);
 		try (BufferedReader reader = charSource.openBufferedStream()) {
 			nashornEngine.eval(reader);

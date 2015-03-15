@@ -177,12 +177,12 @@ public class JSModuleContainer {
 			throw new IllegalStateException("React module is in state " + reactModule.state);
 		}
 		try {
-			loadReactModule("JSXTransformer", "jsx-transformer.js", "JSXTransformer", JSXTransformer.class);
+			loadReactModule("JSXTransformer", "JSXTransformer", "JSXTransformer", JSXTransformer.class);
 		} catch (IOException | ScriptException e) {
 			throw new IllegalStateException("Unable to load JSXTransformer", e);
 		}
 		try {
-			loadReactModule("react", "react-with-addons.js", "React", React.class);
+			loadReactModule("react", "react-with-addons", "React", React.class);
 		} catch (IOException | ScriptException e) {
 			throw new IllegalStateException("Unable to load React", e);
 		}
@@ -192,7 +192,7 @@ public class JSModuleContainer {
 			throws IOException, ScriptException {
 		Module module = new Module();
 		modules.put(moduleName, module);
-		module.value = loadReactScript(Resources.getResource("web/" + scriptName), symbol);
+		module.value = loadReactScript(ReactResources.resourceFor(scriptName), symbol);
 		Invocable nashornInvoker = (Invocable) nashornEngine;
 		module.adaptors = ImmutableClassToInstanceMap.builder()
 				.put(adaptTo, nashornInvoker.getInterface(module.value, adaptTo)).build();
