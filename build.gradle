@@ -63,12 +63,12 @@ dependencies {
     compile 'com.fasterxml.jackson.datatype:jackson-datatype-jdk7:' + jacksonVersion
     compile 'com.fasterxml.jackson.datatype:jackson-datatype-jdk8:' + jacksonVersion
     runtime 'ch.qos.logback:logback-classic:1.1.2'
-    runtime 'org.webjars:react:' + ext.reactVersion
+    runtime 'org.webjars:react:' + reactVersion
     testCompile 'junit:junit:4.12'
     testCompile 'org.hamcrest:hamcrest-library:1.3'
     testCompile 'org.hamcrest:hamcrest-integration:1.3'
     testCompile 'org.mockito:mockito-core:1.10.19'
-    testRuntime 'org.webjars:react:' + ext.reactVersion
+    testRuntime 'org.webjars:react:' + reactVersion
     browserTestCompile ('org.seleniumhq.selenium:selenium-java:2.42.2') {
         exclude module: 'httpclient'
     }
