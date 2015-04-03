@@ -134,7 +134,7 @@ check.dependsOn(integrationTest)
 
 eclipse {
     classpath {
-        plusConfigurations += configurations.integrationTestCompile;
-        plusConfigurations += configurations.browserTestCompile;
+        plusConfigurations += [ configurations.integrationTestCompile ];
+        plusConfigurations += [ configurations.browserTestCompile ];
     }
 }
