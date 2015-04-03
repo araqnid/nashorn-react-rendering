@@ -9,6 +9,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
+import javax.inject.Qualifier;
 import javax.inject.Singleton;
 
 import org.slf4j.Logger;
@@ -19,7 +20,6 @@ import com.google.common.util.concurrent.MoreExecutors;
 import com.google.common.util.concurrent.Service;
 import com.google.common.util.concurrent.ServiceManager;
 import com.google.inject.AbstractModule;
-import com.google.inject.BindingAnnotation;
 import com.google.inject.Provides;
 
 public class AppConfigModule extends AbstractModule {
@@ -66,14 +66,14 @@ public class AppConfigModule extends AbstractModule {
 
 	@Retention(RetentionPolicy.RUNTIME)
 	@Target({ ElementType.PARAMETER, ElementType.METHOD, ElementType.FIELD })
-	@BindingAnnotation
+	@Qualifier
 	@Documented
 	public @interface Version {
 	}
 
 	@Retention(RetentionPolicy.RUNTIME)
 	@Target({ ElementType.PARAMETER, ElementType.METHOD, ElementType.FIELD })
-	@BindingAnnotation
+	@Qualifier
 	@Documented
 	public @interface Managed {
 	}

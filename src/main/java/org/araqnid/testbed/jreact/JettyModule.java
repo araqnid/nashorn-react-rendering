@@ -8,6 +8,8 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 import javax.inject.Inject;
+import javax.inject.Named;
+import javax.inject.Qualifier;
 import javax.inject.Singleton;
 
 import org.araqnid.testbed.jreact.AppConfigModule.Managed;
@@ -22,10 +24,8 @@ import com.google.common.reflect.ClassPath;
 import com.google.common.util.concurrent.AbstractIdleService;
 import com.google.common.util.concurrent.Service;
 import com.google.inject.AbstractModule;
-import com.google.inject.BindingAnnotation;
 import com.google.inject.Provides;
 import com.google.inject.multibindings.Multibinder;
-import com.google.inject.name.Named;
 
 public class JettyModule extends AbstractModule {
 	@Override
@@ -85,7 +85,7 @@ public class JettyModule extends AbstractModule {
 
 	@Retention(RetentionPolicy.RUNTIME)
 	@Target({ ElementType.PARAMETER, ElementType.METHOD, ElementType.FIELD })
-	@BindingAnnotation
+	@Qualifier
 	@Documented
 	public @interface Port {
 	}
