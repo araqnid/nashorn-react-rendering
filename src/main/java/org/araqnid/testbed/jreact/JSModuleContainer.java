@@ -182,7 +182,7 @@ public class JSModuleContainer {
 			throw new IllegalStateException("Unable to load JSXTransformer", e);
 		}
 		try {
-			loadReactModule("react", "react-with-addons", "React", React.class);
+			loadReactModule("react", "react-with-addons.min", "React", React.class);
 		} catch (IOException | ScriptException e) {
 			throw new IllegalStateException("Unable to load React", e);
 		}
